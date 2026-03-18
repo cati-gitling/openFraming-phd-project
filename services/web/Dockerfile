@@ -56,8 +56,6 @@ RUN { echo '#/bin/sh'; echo 'echo "$JAVA_HOME"'; } > /usr/local/bin/docker-java-
 ENV JAVA_VERSION 11
 RUN apt-get update && apt-get install -y openjdk-11-jdk && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-=======
-ENV JAVA_VERSION 16-ea+26
 RUN set -eux; \
 	\
 	arch="$(dpkg --print-architecture)"; \
@@ -117,7 +115,7 @@ RUN set -eux; \
 	fileEncoding="$(echo 'System.out.println(System.getProperty("file.encoding"))' | jshell -s -)"; [ "$fileEncoding" = 'UTF-8' ]; rm -rf ~/.java; \
 	javac --version; \
 	java --version
->>>>>>> 46a5fee829c6e722afced0a3bc93cc41ded8c68e
+
 ######################## OpenJDK Done #############################
 #
 # create directory for the app user
@@ -178,9 +176,12 @@ ENTRYPOINT [ "../entrypoint.sh" ]
 # ENV FLASK_RUN_HOST=0.0.0.0
 CMD [ "gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "flask_app.app:create_app()" , "--access-logfile", "-"]
 CMD ["flask", "run"]
-:1,$s/<<<<<<<\ .*//g
-:1,$s/=+//g
-:1,$s/>>>>>>>\ .*//g 
+
+
+
+
+
+
 
 
 
