@@ -6,10 +6,10 @@ from redis import Redis
 from rq import Queue  # type: ignore
 
 from flask_app.settings import Settings
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+from flask import current_app as app
+# logging.basicConfig()
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.DEBUG)
 
 
 class ClassifierPredictionTaskArgs(TT.TypedDict):
@@ -42,7 +42,16 @@ class TopicModelTrainingTaskArgs(TT.TypedDict):
     fname_topics_by_doc: str
     iterations: int
     mallet_bin_directory: str
+    language: str
 
+class TopicModelProcessingOptions(TT.TypedDict):
+    remove_stopwords: bool
+    extra_stopwords: T.List[str]
+    phrases_to_join: T.List[str]
+    remove_punctuation: bool
+    do_stemming: bool
+    do_lemmatizing: bool
+    min_word_length: int
 
 class QueueManager(object):
     def __init__(self) -> None:
@@ -64,10 +73,10 @@ class QueueManager(object):
         dev_file: str,
         cache_dir: str,
         output_dir: str,
-        num_train_epochs: float = 3.0,
+        num_train_epochs: int = 3,
     ) -> None:
-        logger.info("Enqueued classifier training")
-
+        app.logger.info("Enqueued classifier training")
+        app.logger.info('hererer')
         self.classifiers_queue.enqueue(
             "flask_app.modeling.tasks.do_classifier_related_task",
             ClassifierTrainingTaskArgs(
@@ -94,7 +103,7 @@ class QueueManager(object):
         test_output_file: str,
     ) -> None:
 
-        logger.info("Enqueued classifier training.")
+        app.logger.info("Enqueued classifier training.")
         self.classifiers_queue.enqueue(
             "flask_app.modeling.tasks.do_classifier_related_task",
             ClassifierPredictionTaskArgs(
@@ -116,10 +125,26 @@ class QueueManager(object):
         fname_keywords: str,
         fname_topics_by_doc: str,
         mallet_bin_directory: str,
-        iterations: int = 1000,
+        language: str,
+        remove_stopwords: bool,
+        extra_stopwords: list,
+        phrases_to_join: list,
+        remove_punctuation: bool,
+        do_stemming: bool,
+        do_lemmatizing: bool,
+        min_word_length: int = 2,
+        iterations: int = 1000
     ) -> None:
-        logger.info("Enqueued lda training with pickle_data.")
-
+        app.logger.info("Enqueued lda training with pickle_data.")
+        topic_mdl_processing_temp = TopicModelProcessingOptions(
+            remove_stopwords=remove_stopwords,
+            extra_stopwords=[] if extra_stopwords is None else extra_stopwords,
+            phrases_to_join=[] if phrases_to_join is None else phrases_to_join,
+            remove_punctuation=remove_punctuation,
+            do_stemming=do_stemming,
+            do_lemmatizing=do_lemmatizing,
+            min_word_length=min_word_length
+        )
         self.topic_models_queue.enqueue(
             "flask_app.modeling.tasks.do_topic_model_related_task",
             TopicModelTrainingTaskArgs(
@@ -129,6 +154,9 @@ class QueueManager(object):
                 fname_topics_by_doc=fname_topics_by_doc,
                 iterations=iterations,
                 mallet_bin_directory=mallet_bin_directory,
+                language=language
             ),
+            topic_mdl_processing_temp
+            ,
             job_timeout=-1,
         )

@@ -39,7 +39,7 @@ class Settings:
     # Used by classiifiers only
     LABEL_COL = "Category"
 
-    TRANSFORMERS_MODEL = "distilbert-base-uncased"
+    TRANSFORMERS_MODEL = "distilbert-base-multilingual-cased"
     TEST_SET_SPLIT = 0.2
     MINIMUM_LDA_EXAMPLES = 20
     DEFAULT_NUM_KEYWORDS_TO_GENERATE = 20
@@ -74,7 +74,7 @@ class Settings:
     @classmethod
     def initialize_from_env(cls) -> None:
         try:
-
+            print('here from env')
             settings_tup = SettingsFromOutside(
                 PROJECT_DATA_DIRECTORY=os.environ["PROJECT_DATA_DIRECTORY"],
                 TRANSFORMERS_CACHE_DIRECTORY=os.environ["TRANSFORMERS_CACHE_DIRECTORY"],
@@ -123,7 +123,7 @@ class Settings:
         cls.SENDGRID_FROM_EMAIL = settings_tup.SENDGRID_FROM_EMAIL
         cls.SERVER_NAME = settings_tup.SERVER_NAME
         cls._initialized_already = True
-
+        print('hereh')
         if cls.SENDGRID_API_KEY is None:
             logger.info(
                 "Env variable SENDGRID_API_KEY was None, "

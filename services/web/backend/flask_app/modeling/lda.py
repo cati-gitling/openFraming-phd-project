@@ -13,9 +13,9 @@ from gensim.models import CoherenceModel  # type: ignore
 from nltk.corpus import stopwords  # type: ignore
 from nltk.stem.wordnet import WordNetLemmatizer  # type: ignore
 
+from flask import current_app as app
 from flask_app.settings import Settings
-
-
+# from modeling.settings2 import Settings
 EXCEL_EXTENSIONS = {"xlsx", "xls"}
 CSV_EXTENSIONS = {"csv"}
 TSV_EXTENSIONS = {"tsv"}
@@ -23,9 +23,9 @@ TSV_EXTENSIONS = {"tsv"}
 
 EXPERT_LABEL_COLUMN_NAME = "EXPERT_LABEL"
 
-import logging
+# import logging
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class TopicModelMetricsJson(TT.TypedDict):
@@ -33,12 +33,12 @@ class TopicModelMetricsJson(TT.TypedDict):
 
 
 class LDAPreprocessingOptions(TT.TypedDict, total=False):
-    remove_phrases: str
-    join_phrases: str
-    remove_punctuation_and_digits: str
-    remove_stopwords: str
-    lemmatize_content: str
-    remove_short_words: str
+    remove_phrases: bool
+    join_phrases: bool
+    remove_punctuation_and_digits: bool
+    remove_stopwords: bool
+    lemmatize_content: bool
+    remove_short_words: bool
 
 
 class Corpus(object):
@@ -77,7 +77,6 @@ class Corpus(object):
                 opposed to being set to False explicitly), that preprocessing option
                 will be executed.
             """
-
         file_path = Path(file_name)
 
         if not file_path.exists():
@@ -99,54 +98,58 @@ class Corpus(object):
         self.df_docs = doc_reader(file_name)
         self.id_column_name = id_column_name
         self.content_column_name = content_column_name
-
+        
+        self.processing_to_do = processing_to_do
         self.phrases_to_join = phrases_to_join
+        # if(len(self.phrases_to_join)>0): self.processing_to_do['join_phrases'] =  True
         self.language = language
         self.phrases_to_remove = phrases_to_remove
+        # if(len(self.phrases_to_remove)>0): self.processing_to_do['remove_phrases'] = True
         self.dont_stem = dont_stem
-
         self.min_word_length = min_word_length
-        self.processing_to_do = processing_to_do
-
+        # self.processing_to_do['join_phrases'] = True
         punctuation_no_underscore = set(string.punctuation)
         punctuation_no_underscore.add("’")
         punctuation_no_underscore.add("”")
         punctuation_no_underscore.remove("_")
         self.punctuation = punctuation_no_underscore | extra_punctuation
-
+        # self.processing_to_do['remove_punctuation_and_digits'] = True
         self.df_docs[Settings.STEMMED_CONTENT_COL] = self.df_docs[
             self.content_column_name
         ].apply(lambda b: b.lower())
-
-        try:
-            self.stopwords = stopwords.words(self.language)
-        except OSError:
-            raise ValueError(
-                "No stopwords exist for language {}!".format(self.language)
-            )
-
+        if(self.processing_to_do['remove_stopwords']):
+            try:
+                self.stopwords = stopwords.words(self.language)
+            except OSError:
+                raise ValueError(
+                    "No stopwords exist for language {}!".format(self.language)
+                )
+        else:
+            self.stopwords = []
+        # if(language=='english'):
+        #     self.processing_to_do.get('lemmatize_content', True)
+        #     self.processing_to_do.get('remove_short_words', True)
         self.stopwords += extra_stopwords
-
         preprocessing_completed = []
-
+        print(self.processing_to_do)
         # Figure out if the user meant to remove phrases by checking
         # if they provided phrases to remove
-        remove_phrases_default = phrases_to_remove != []
-        if self.processing_to_do.get("remove_phrases", remove_phrases_default):
+        remove_phrases_default = (phrases_to_remove != [])
+        if remove_phrases_default:
             self.remove_phrases()
             preprocessing_completed.append("Removed phrases")
 
-        if self.processing_to_do.get("join_phrases", True):
+        if self.processing_to_do.get("join_phrases"):
             self.join_phrases()
             preprocessing_completed.append("Joined phrases")
 
-        if self.processing_to_do.get("remove_punctuation_and_digits", True):
+        if self.processing_to_do.get("remove_punctuation_and_digits"):
             self.remove_punctuation_and_digits_and_tokenize()
             preprocessing_completed.append("Removed punctuation and digits")
         else:
             self.tokenize_content()
             preprocessing_completed.append("Tokenized content")
-
+    
         if self.processing_to_do.get("remove_stopwords", True):
             self.remove_stopwords()
             preprocessing_completed.append("Removed stopwords")
@@ -161,6 +164,7 @@ class Corpus(object):
             preprocessing_completed.append("Removed short words")
 
         self.preprocessing_completed = preprocessing_completed
+        print(self.preprocessing_completed)
 
     def what_preprocessing_was_completed(self) -> T.List[str]:
         return self.preprocessing_completed
@@ -242,7 +246,7 @@ class Corpus(object):
     def remove_short_words(self, min_length: int) -> bool:
         self.df_docs[Settings.STEMMED_CONTENT_COL] = self.df_docs[
             Settings.STEMMED_CONTENT_COL
-        ].apply(lambda content: [c for c in content if len(c) > 2])
+        ].apply(lambda content: [c for c in content if len(c) > self.min_word_length])
 
         return True
 
@@ -298,14 +302,13 @@ class LDAModeler(object):
         float, T.List[T.List[str]], T.Any, T.Iterator[T.List[T.Tuple[int, float]]]
     ]:
         self.num_topics = num_topics
-
         mallet_path = Path(self.mallet_bin_directory) / "mallet"
         if not mallet_path.exists():
             raise Exception(
                 f"Could not find a file named 'mallet' {str(self.mallet_bin_directory)}. Are"
                 " you sure you installed Mallet and set MALLET_BIN_DIRECTORY correctly?"
             )
-        self.lda_model = models.wrappers.LdaMallet(
+        self.lda_model = models.wrappers.LdaMallet( 
             str(mallet_path),
             corpus=self.corpus_bow,
             num_topics=num_topics,
