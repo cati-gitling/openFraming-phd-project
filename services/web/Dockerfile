@@ -177,8 +177,10 @@ ENTRYPOINT [ "../entrypoint.sh" ]
 # ENV FLASK_ENV=development
 # ENV FLASK_RUN_HOST=0.0.0.0
 CMD [ "gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "flask_app.app:create_app()" , "--access-logfile", "-"]
-CMD ["flask", "run"]:1,$s/<<<<<<<\ .*//g
-:1,$s/=======//g  
-:1,$s/>>>>>>>\ .*//g
-:wq
 CMD ["flask", "run"]
+:1,$s/<<<<<<<\ .*//g
+:1,$s/=+//g
+:1,$s/>>>>>>>\ .*//g 
+
+
+
