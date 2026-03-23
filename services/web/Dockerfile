@@ -56,36 +56,6 @@ RUN { echo '#/bin/sh'; echo 'echo "$JAVA_HOME"'; } > /usr/local/bin/docker-java-
 ENV JAVA_VERSION 11
 RUN apt-get update && apt-get install -y openjdk-11-jdk && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN set -eux; \
-	\
-	arch="$(dpkg --print-architecture)"; \
-# this "case" statement is generated via "update.sh"
-	case "$arch" in \
-# arm64v8
-		arm64 | aarch64) \
-			downloadUrl=https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/35/GPL/openjdk-16_linux-aarch64_bin.tar.gz; \
-			downloadSha256=5afe8561d1c6f777bf0f70bf5d994187ff607b8c4c6ff1194f849a0bb933d805			;; \
-# amd64
-		amd64 | i386:x86-64) \
-			downloadUrl=https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/35/GPL/openjdk-16_linux-x64_bin.tar.gz; \
-			downloadSha256=25f51624a17545a769e97ded5d51075ab31f9a52de925f7292cff951becf8fd2 \
-			;; \
-# fallback
-		*) echo >&2 "error: unsupported architecture: '$arch'"; exit 1 ;; \
-	esac; \
-	\
-	wget -O openjdk.tgz "$downloadUrl" --progress=dot:giga; \
-	echo "$downloadSha256 *openjdk.tgz" | sha256sum --strict --check -; \
-	\
-	mkdir -p "$JAVA_HOME"; \
-	tar --extract \
-		--file openjdk.tgz \
-		--directory "$JAVA_HOME" \
-		--strip-components 1 \
-		--no-same-owner \
-	; \
-	rm openjdk.tgz; \
-	\
 # update "cacerts" bundle to use Debian's CA certificates (and make sure it stays up-to-date with changes to Debian's store)
 # see https://github.com/docker-library/openjdk/issues/327
 #     http://rabexc.org/posts/certificates-not-working-java#comment-4099504075
@@ -176,12 +146,3 @@ ENTRYPOINT [ "../entrypoint.sh" ]
 # ENV FLASK_RUN_HOST=0.0.0.0
 CMD [ "gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "flask_app.app:create_app()" , "--access-logfile", "-"]
 CMD ["flask", "run"]
-
-
-
-
-
-
-
-
-
