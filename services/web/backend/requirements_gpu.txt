@@ -10,5 +10,10 @@ gensim==3.8.3
 xlrd==1.2.0
 xlwt==1.3.0
 xlsxwriter==1.2.9
+rq==1.8.1
 pandas==1.0.5
+typing-extensions==3.7.4.2
 peewee==3.13.3
+tensorboard
+flask-cors
+flasgger==0.9.5
